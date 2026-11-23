@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procurement Desk</title>
+<style>
+:root {
+  --petal: #FBF5F2;
+  --charcoal: #2B2B2E;
+  --blush: #D8A7A0;
+  --powder: #EADBD5;
+  --white: #fff;
+  --muted: #817875;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--petal);
+  color: var(--charcoal);
+}
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 235px;
+  background: var(--charcoal);
+  color: white;
+  padding: 28px 20px;
+}
+.brand { font-size: 22px; font-weight: bold; margin-bottom: 42px; }
+.nav {
+  padding: 13px;
+  margin: 8px 0;
+  border-radius: 9px;
+  color: #ddd;
+}
+.nav.active { background: var(--blush); color: var(--charcoal); }
+main { flex: 1; padding: 32px; min-width: 0; }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+h1 { margin: 0 0 7px; font-size: 28px; }
+.subtitle { color: var(--muted); font-size: 14px; }
+.status {
+  background: #e5eee5;
+  color: #35613d;
+  padding: 10px 15px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.card {
+  background: var(--white);
+  border: 1px solid var(--powder);
+  padding: 20px;
+  border-radius: 14px;
+}
+.card p { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+.card h2 { margin: 0; font-size: 27px; }
+.panel {
+  background: white;
+  border: 1px solid var(--powder);
+  border-radius: 14px;
+  padding: 22px;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+input {
+  border: 1px solid var(--powder);
+  background: var(--petal);
+  padding: 11px 13px;
+  border-radius: 8px;
+  min-width: 220px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 650px; }
+th, td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eee5e1;
+  text-align: left;
+  font-size: 13px;
+}
+th { color: var(--muted); font-weight: 600; }
+.empty { text-align: center; color: var(--muted); padding: 35px; }
+.error { color: #a33; font-size: 13px; margin-top: 12px; }
+@media(max-width: 900px) {
+  .cards { grid-template-columns: repeat(2,1fr); }
+  .sidebar { width: 190px; }
+}
+@media(max-width: 600px) {
+  .layout { display: block; }
+  .sidebar { width: 100%; padding: 16px; }
+  .brand { margin-bottom: 12px; }
+  .nav { display: inline-block; }
+  main { padding: 18px; }
+  .cards { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">◈ Procurement Desk</div>
+    <div class="nav active">▦ Overview</div>
+    <div class="nav">▤ Negotiations</div>
+    <div class="nav">◷ Decision History</div>
+    <div class="nav">⚙ Settings</div>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <h1>Procurement Overview</h1>
+        <div class="subtitle">Supplier negotiation intelligence dashboard</div>
+      </div>
+      <div class="status" id="connection">● Connecting...</div>
+    </header>
+
+    <section class="cards">
+      <div class="card"><p>Total Threads</p><h2 id="total">—</h2></div>
+      <div class="card"><p>Suppliers</p><h2 id="suppliers">—</h2></div>
+      <div class="card"><p>Categories</p><h2 id="categories">—</h2></div>
+      <div class="card"><p>Dataset Status</p><h2 id="dataset">—</h2></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 style="margin:0 0 6px">Negotiation Threads</h2>
+          <div class="subtitle">Latest supplier negotiation records</div>
+        </div>
+        <input id="search" placeholder="Search supplier or category...">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thread ID</th>
+              <th>Supplier</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Round</th>
+              <th>Last Counter</th>
+            </tr>
+          </thead>
+          <tbody id="threads">
+            <tr><td colspan="6" class="empty">Loading records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="error" class="error"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+// Replace this with your Mac's local Wi-Fi IP address.
+const API_BASE = "http://10.156.78.182:8000";
+
+let allThreads = [];
+
+async function loadDashboard() {
+  try {
+    const [healthResponse, summaryResponse, threadsResponse] =
+      await Promise.all([
+        fetch(`${API_BASE}/api/health`),
+        fetch(`${API_BASE}/api/summary`),
+        fetch(`${API_BASE}/api/threads?limit=100`)
+      ]);
+
+    if (!healthResponse.ok || !summaryResponse.ok || !threadsResponse.ok) {
+      throw new Error("Backend returned an error.");
+    }
+
+    const health = await healthResponse.json();
+    const summary = await summaryResponse.json();
+    const threadData = await threadsResponse.json();
+
+    document.getElementById("connection").textContent =
+      health.status === "online" ? "● Backend Online" : "● Offline";
+
+    document.getElementById("total").textContent =
+      summary.total_threads ?? 0;
+    document.getElementById("suppliers").textContent =
+      summary.suppliers ?? 0;
+    document.getElementById("categories").textContent =
+      summary.categories ?? 0;
+    document.getElementById("dataset").textContent =
+      health.dataset_loaded ? "Loaded" : "Missing";
+
+    allThreads = threadData.threads || [];
+    renderThreads(allThreads);
+
+    if (!health.dataset_loaded) {
+      document.getElementById("error").textContent =
+        "Backend is online, but threads.csv has not been added yet.";
+    }
+  } catch (error) {
+    document.getElementById("connection").textContent =
+      "● Connection Failed";
+    document.getElementById("error").textContent =
+      "Could not connect to backend. Check the Mac IP, server and Wi-Fi.";
+    document.getElementById("threads").innerHTML =
+      '<tr><td colspan="6" class="empty">Backend connection unavailable</td></tr>';
+  }
+}
+
+function renderThreads(threads) {
+  const tbody = document.getElementById("threads");
+
+  if (!threads.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="6" class="empty">No records available</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = threads.map(t => `
+    <tr>
+      <td>${safe(t.thread_id)}</td>
+      <td>${safe(t.supplier)}</td>
+      <td>${safe(t.category)}</td>
+      <td>${safe(t.quantity)}</td>
+      <td>${safe(t.round)}</td>
+      <td>${safe(t.our_last_counter)}</td>
+    </tr>
+  `).join("");
+}
+
+function safe(value) {
+  const element = document.createElement("span");
+  element.textContent = value == null ? "—" : String(value);
+  return element.innerHTML;
+}
+
+document.getElementById("search").addEventListener("input", event => {
+  const query = event.target.value.toLowerCase();
+  const filtered = allThreads.filter(t =>
+    String(t.supplier ?? "").toLowerCase().includes(query) ||
+    String(t.category ?? "").toLowerCase().includes(query) ||
+    String(t.thread_id ?? "").toLowerCase().includes(query)
+  );
+  renderThreads(filtered);
+});
+
+loadDashboard();
+</script>
+</body>
+</html>
