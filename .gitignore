@@ -4,7 +4,8 @@ __pycache__/
 .env
 .DS_Store
 extracted/
-data/
+/data/*
+!/data/threads.csv
 
 # Kaggle private data and submissions
 /official_kaggle/
@@ -22,3 +23,4 @@ data/
 *.safetensors
 /frontend/*.before*
 /backend/engine/*backup*
+/backend/*.ollama_backup

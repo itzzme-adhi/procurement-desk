@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from functools import lru_cache
 import json
 
@@ -19,8 +20,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5500",
-        "http://127.0.0.1:5500"
+        origin.strip()
+        for origin in os.getenv(
+            "FRONTEND_ORIGINS",
+            "http://localhost:5500,http://127.0.0.1:5500"
+        ).split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],

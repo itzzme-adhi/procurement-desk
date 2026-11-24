@@ -1,10 +1,11 @@
 import json
+import os
 import urllib.request
 import urllib.error
 
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen3.5:9b"
+MODEL = "Qwen/Qwen3.5-9B"
+REQUEST_TIMEOUT = 150
 
 
 def fallback_explanation(decision):
@@ -27,6 +28,16 @@ def explain_decision(context):
     decision = str(context["decision"])
     fallback = fallback_explanation(decision)
 
+    api_key = os.environ.get("RUNPOD_API_KEY")
+    endpoint_id = os.environ.get("RUNPOD_ENDPOINT_ID")
+
+    if not api_key or not endpoint_id:
+        return {
+            "explanation": fallback,
+            "llm_used": False,
+            "reason": "Cloud AI configuration missing; deterministic fallback used"
+        }
+
     safe_context = {
         "deterministic_decision": decision,
         "supplier": str(context.get("supplier", "")),
@@ -40,6 +51,7 @@ def explain_decision(context):
 You explain procurement decisions to human reviewers.
 
 SECURITY RULES:
+
 - The deterministic_decision is final and authoritative.
 - Never change or reinterpret the decision.
 - Never approve, reject, negotiate, or calculate prices.
@@ -64,28 +76,37 @@ SECURITY RULES:
                 "content": json.dumps(safe_context)
             }
         ],
-        "stream": False,
-        "think": False,
-        "keep_alive": "5m",
-        "options": {
-            "temperature": 0.1,
-            "num_predict": 140
-        }
+        "temperature": 0.1,
+        "max_tokens": 140,
+        "stream": False
     }
 
+    url = (
+        "https" + ":" + "/" + "/"
+        + "api.runpod.ai/v2/"
+        + endpoint_id
+        + "/openai/v1/chat/completions"
+    )
+
     request = urllib.request.Request(
-        OLLAMA_URL,
+        url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
         method="POST"
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(
+            request,
+            timeout=REQUEST_TIMEOUT
+        ) as response:
             result = json.loads(response.read().decode("utf-8"))
 
         explanation = (
-            result.get("message", {}).get("content", "").strip()
+            result["choices"][0]["message"]["content"].strip()
         )
 
         if not explanation:
@@ -98,10 +119,10 @@ SECURITY RULES:
         }
 
     except Exception as exc:
-        print("Ollama explanation unavailable:", type(exc).__name__)
+        print("Cloud explanation unavailable:", type(exc).__name__)
 
         return {
             "explanation": fallback,
             "llm_used": False,
-            "reason": "Local AI unavailable; deterministic fallback used"
+            "reason": "Cloud AI unavailable; deterministic fallback used"
         }
