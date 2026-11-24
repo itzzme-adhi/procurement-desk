@@ -104,6 +104,63 @@ tbody tr:last-child td{border-bottom:0}
 @media(max-width:1050px){.sidebar{width:215px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.layout{display:block}.sidebar{width:auto;padding:13px 15px;gap:12px;border-right:0;border-bottom:1px solid rgba(255,255,255,.8)}.brand{padding:0 4px}.nav-label,.sidebar-bottom{display:none}.nav-list{display:flex;overflow:auto;padding-bottom:2px}.nav{white-space:nowrap;width:auto;padding:10px 12px}.nav .ico{width:auto}main{padding:23px 15px 35px}.topbar{align-items:flex-start}.top-actions{align-items:flex-end;flex-direction:column}.hero{padding:22px}.panel{padding:16px}.cards{gap:10px}.metric{padding:15px}.metric-value{font-size:24px}}
 @media(max-width:420px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.connection{font-size:10px;padding:8px 10px}.topbar{gap:8px}.subtitle{max-width:230px}.detail-grid{grid-template-columns:1fr}}
+
+/* Dedicated AI analysis workspace */
+.analysis-page {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-y: auto;
+  background: #FBF5F2;
+  color: #2B2B2E;
+  padding: 32px 6%;
+}
+.analysis-page.show { display: block; }
+.analysis-header {
+  max-width: 1050px;
+  margin: 0 auto 28px;
+}
+.analysis-back {
+  border: 1px solid #D8A7A0;
+  background: white;
+  color: #2B2B2E;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  margin-bottom: 28px;
+}
+.analysis-card {
+  max-width: 1050px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid #EADBD5;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 12px 35px rgba(43,43,46,.07);
+}
+.analysis-card h1 { margin-top: 0; }
+.analysis-subtitle { color: #777; margin-bottom: 24px; }
+.analysis-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+  font-size: 15px;
+}
+.analysis-open-btn {
+  margin-top: 14px;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #2B2B2E;
+  color: white;
+  cursor: pointer;
+}
+@media(max-width:600px) {
+  .analysis-page { padding: 20px 14px; }
+  .analysis-card { padding: 20px; }
+}
+
 </style>
 </head>
 <body>
@@ -150,16 +207,29 @@ tbody tr:last-child td{border-bottom:0}
 </div>
 <div class="modal-backdrop" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal"><div class="modal-head"><div><div class="eyebrow">Thread details</div><h3 id="modalTitle">Negotiation thread</h3><div class="panel-sub" id="modalSubtitle"></div></div><button class="icon-btn" id="closeModal" type="button" aria-label="Close details">×</button></div><div class="detail-grid" id="detailGrid"></div><div class="modal-note" id="modalNote"></div>
-<div class="modal-note" id="aiExplanation" aria-live="polite">
-  <strong>✦ AI Explanation</strong>
-  <p id="aiExplanationText">Select a thread to generate an explanation.</p>
+<button class="analysis-open-btn" id="openAIAnalysis" type="button">✦ Open AI Analysis →</button>
 </div>
 </div>
-</div>
+
+<section class="analysis-page" id="aiAnalysisPage" aria-label="AI negotiation analysis">
+  <div class="analysis-header">
+    <button class="analysis-back" id="backToDashboard" type="button">← Back to Dashboard</button>
+  </div>
+  <article class="analysis-card">
+    <div class="eyebrow">✦ Cloudflare AI · Procurement intelligence</div>
+    <h1 id="analysisTitle">AI Negotiation Analysis</h1>
+    <div class="analysis-subtitle" id="analysisSubtitle"></div>
+    <div class="analysis-output" id="analysisExplanationText" aria-live="polite">
+      Select a negotiation thread to generate an analysis.
+    </div>
+  </article>
+</section>
+
 <script>
 // Keep this address aligned with the backend host used on your network.
 const API_BASE = "https" + ":" + "/" + "/" + "procurement-desk-tbf3.onrender.com";
 let allThreads = [];
+let selectedThread = null;
 const $ = id => document.getElementById(id);
 
 function safe(value){
@@ -276,7 +346,7 @@ let aiRequestId = 0;
 
 async function loadAIExplanation(thread){
   const requestId = ++aiRequestId;
-  const output = $("aiExplanationText");
+  const output = $("analysisExplanationText");
 
   output.textContent = "Analyzing negotiation with Cloudflare AI...";
 
@@ -308,6 +378,7 @@ async function loadAIExplanation(thread){
 
 function openDetails(thread){
   if(!thread)return;
+  selectedThread = thread;
   $("modalTitle").textContent=thread.thread_id||"Negotiation thread";
   $("modalSubtitle").textContent=[thread.supplier,thread.category].filter(Boolean).join(" · ");
   const excluded=new Set(["thread_id","supplier","category","latest_message","last_message","messages","conversation","history"]);
@@ -316,7 +387,6 @@ function openDetails(thread){
   const note=thread.latest_message??thread.last_message??thread.latest_supplier_message??"";
   $("modalNote").textContent=note?`Latest message: ${note}`:"";
   $("detailModal").classList.add("show");
-  loadAIExplanation(thread);
   $("closeModal").focus();
 }
 $("threads").addEventListener("click",event=>{
@@ -329,9 +399,35 @@ $("threads").addEventListener("keydown",event=>{
   }
 });
 function closeDetails(){$("detailModal").classList.remove("show")}
+
+$("openAIAnalysis").addEventListener("click", () => {
+  if (!selectedThread) return;
+
+  closeDetails();
+
+  $("analysisTitle").textContent =
+    "AI Analysis · " + (selectedThread.thread_id || "Negotiation");
+
+  $("analysisSubtitle").textContent =
+    [selectedThread.supplier, selectedThread.category]
+      .filter(Boolean).join(" · ");
+
+  $("aiAnalysisPage").classList.add("show");
+  loadAIExplanation(selectedThread);
+});
+
+$("backToDashboard").addEventListener("click", () => {
+  $("aiAnalysisPage").classList.remove("show");
+});
+
 $("closeModal").addEventListener("click",closeDetails);
 $("detailModal").addEventListener("click",event=>{if(event.target===$("detailModal"))closeDetails()});
-document.addEventListener("keydown",event=>{if(event.key==="Escape")closeDetails()});
+document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"){
+    closeDetails();
+    $("aiAnalysisPage").classList.remove("show");
+  }
+});
 $("search").addEventListener("input",event=>{
   const q=event.target.value.trim().toLowerCase();
   currentPage=1;renderThreads(allThreads.filter(t=>[t.thread_id,t.supplier,t.category].some(v=>String(v??"").toLowerCase().includes(q))));
