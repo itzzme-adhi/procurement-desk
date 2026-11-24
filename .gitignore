@@ -5,3 +5,20 @@ __pycache__/
 .DS_Store
 extracted/
 data/
+
+# Kaggle private data and submissions
+/official_kaggle/
+/claude_review/
+/final_submission.csv
+/submission*.csv
+
+# Local backup files
+/backend/*.before*
+/backend/*.openai_backup
+/frontend/*backup*
+
+# Local model and temporary files
+*.gguf
+*.safetensors
+/frontend/*.before*
+/backend/engine/*backup*

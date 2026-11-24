@@ -1,9 +1,12 @@
 from pathlib import Path
+from functools import lru_cache
 import json
 
 import pandas as pd
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from backend.engine.decision import decide_thread
+from backend.llm_service import explain_decision
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,6 +28,7 @@ app.add_middleware(
 )
 
 
+@lru_cache(maxsize=1)
 def find_threads_file():
     search_roots = [
         ROOT / "data",
@@ -40,6 +44,7 @@ def find_threads_file():
     return None
 
 
+@lru_cache(maxsize=1)
 def load_threads():
     file_path = find_threads_file()
 
@@ -120,4 +125,40 @@ def get_threads(
         "limit": limit,
         "offset": offset,
         "threads": records
+    }
+
+
+@app.get("/api/threads/{thread_id}/explain")
+def explain_thread(thread_id: str):
+    df = load_threads()
+
+    if df is None:
+        raise HTTPException(status_code=503, detail="Dataset unavailable")
+
+    matches = df[df["thread_id"].astype(str) == thread_id]
+
+    if matches.empty:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    row = matches.iloc[0]
+
+    # Deterministic engine always decides first.
+    decision = decide_thread(row)
+
+    # LLM receives explanation context only.
+    result = explain_decision({
+        "decision": decision,
+        "supplier": row["supplier"],
+        "category": row["category"],
+        "date": row["date"],
+        "quantity": row["quantity"],
+        "round": row["round"],
+    })
+
+    return {
+        "thread_id": thread_id,
+        "decision": decision,
+        "explanation": result["explanation"],
+        "llm_used": result["llm_used"],
+        "reason": result["reason"],
     }
