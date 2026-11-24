@@ -158,6 +158,7 @@ def explain_thread(thread_id: str):
         "date": row["date"],
         "quantity": row["quantity"],
         "round": row["round"],
+        "supplier_message": row.get("supplier_message", ""),
     })
 
     return {

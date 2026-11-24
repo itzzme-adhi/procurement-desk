@@ -278,7 +278,7 @@ async function loadAIExplanation(thread){
   const requestId = ++aiRequestId;
   const output = $("aiExplanationText");
 
-  output.textContent = "Generating explanation with local AI...";
+  output.textContent = "Analyzing negotiation with Cloudflare AI...";
 
   try {
     const response = await fetch(
@@ -295,13 +295,13 @@ async function loadAIExplanation(thread){
 
     output.textContent = data.llm_used
       ? data.explanation
-      : `${data.explanation} (Deterministic fallback: local AI unavailable.)`;
+      : `${data.explanation} (Deterministic fallback: Cloudflare AI unavailable.)`;
 
   } catch (error) {
     if (requestId !== aiRequestId) return;
 
     output.textContent =
-      "Unable to load the AI explanation. Check that the backend and Ollama are running.";
+      "Unable to load the AI explanation. Check that the backend is running.";
     console.error("AI explanation error:", error);
   }
 }
