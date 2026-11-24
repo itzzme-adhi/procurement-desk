@@ -161,6 +161,7 @@ tbody tr:last-child td{border-bottom:0}
   .analysis-card { padding: 20px; }
 }
 
+.workspace-view[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -177,6 +178,7 @@ tbody tr:last-child td{border-bottom:0}
     <div class="sidebar-bottom"><strong>Procurement intelligence</strong><span>Supplier negotiation records, organised in one calm workspace.</span></div>
   </aside>
   <main>
+    <section class="workspace-view" id="overviewView">
     <header class="topbar">
       <div><div class="eyebrow">Workspace / Overview</div><h1>Procurement Overview</h1><div class="subtitle">A clearer view of your supplier negotiations.</div></div>
       <div class="top-actions"><div class="connection" id="connection"><span class="dot"></span><span id="connectionText">Connecting...</span></div><button class="icon-btn" id="refresh" type="button" title="Refresh data" aria-label="Refresh data">↻</button></div>
@@ -190,6 +192,8 @@ tbody tr:last-child td{border-bottom:0}
       <article class="metric"><div class="metric-top"><span class="metric-label">Categories</span><span class="metric-icon">▧</span></div><div class="metric-value" id="categories">—</div><div class="metric-foot">Product and service groups</div></article>
       <article class="metric"><div class="metric-top"><span class="metric-label">Dataset status</span><span class="metric-icon">◉</span></div><div class="metric-value" id="dataset" style="font-size:20px">—</div><div class="metric-foot" id="datasetFoot">Waiting for backend</div></article>
     </section>
+    </section>
+    <section class="workspace-view" id="negotiationsView" hidden>
     <section class="panel" id="threadsPanel">
       <div class="panel-head"><div><h2 class="panel-title" id="tableTitle">Negotiation threads</h2><div class="panel-sub">Select any row to inspect its available details.</div></div>
         <div class="tools"><div class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Search threads, suppliers..." aria-label="Search threads"></div><button class="soft-btn" id="clearSearch" type="button">Clear</button></div>
@@ -202,6 +206,7 @@ tbody tr:last-child td{border-bottom:0}
         <button class="soft-btn" id="nextPage" type="button" disabled>Next →</button>
       </div>
       <div id="error" class="error" role="alert"></div>
+    </section>
     </section>
   </main>
 </div>
@@ -437,15 +442,20 @@ $("refresh").addEventListener("click",loadDashboard);
 document.querySelectorAll(".nav").forEach(button=>button.addEventListener("click",()=>{
   document.querySelectorAll(".nav").forEach(item=>item.classList.remove("active"));
   button.classList.add("active");
-  if(button.dataset.view==="negotiations"){
-    $("tableTitle").textContent="Negotiation threads";
-    $("threadsPanel").scrollIntoView({behavior:"smooth",block:"start"});
+
+  const view = button.dataset.view;
+  $("overviewView").hidden = view !== "overview";
+  $("negotiationsView").hidden = view !== "negotiations";
+
+  document.title = view === "overview"
+    ? "Procurement Desk — Overview"
+    : "Procurement Desk — Negotiations";
+
+  if(view === "negotiations"){
     $("search").focus({preventScroll:true});
-  }else{
-    $("tableTitle").textContent="Negotiation threads";
-    window.scrollTo({top:0,behavior:"smooth"});
   }
 }));
+
 loadDashboard();
 </script>
 </body>
