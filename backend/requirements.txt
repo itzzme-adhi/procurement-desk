@@ -2,3 +2,5 @@ fastapi
 uvicorn[standard]
 pandas
 pyyaml
+python-multipart
+openpyxl

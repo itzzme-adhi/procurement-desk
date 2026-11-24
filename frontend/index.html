@@ -162,6 +162,19 @@ tbody tr:last-child td{border-bottom:0}
 }
 
 .workspace-view[hidden]{display:none!important}
+
+/* Manual Analysis */
+.manual-drop{border:2px dashed #D8A7A0;border-radius:16px;padding:28px;text-align:center;background:#FBF5F2}
+.manual-drop h2{font-size:19px;margin:0 0 8px}
+.manual-drop p{font-size:12px;color:var(--muted);line-height:1.6}
+.manual-actions,.manual-heading{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:15px 0}
+.manual-heading{justify-content:space-between}
+.manual-primary{background:#2B2B2E;color:white;border:1px solid #2B2B2E;border-radius:9px;padding:10px 16px;font-weight:700;cursor:pointer}
+.manual-primary:disabled,.manual-actions button:disabled{opacity:.45;cursor:not-allowed}
+.manual-status,.manual-ai{margin-top:14px;padding:13px;background:#EADBD5;border-radius:10px;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.manual-ai{background:#FBF5F2;border:1px solid #EADBD5}
+.manual-drop.dragover{background:#EADBD5;border-color:#2B2B2E}
+
 </style>
 </head>
 <body>
@@ -173,6 +186,7 @@ tbody tr:last-child td{border-bottom:0}
       <nav class="nav-list" aria-label="Main navigation">
         <button class="nav active" type="button" data-view="overview"><span class="ico">▦</span>Overview</button>
         <button class="nav" type="button" data-view="negotiations"><span class="ico">▤</span>Negotiations</button>
+          <button class="nav" type="button" data-view="manual"><span class="ico">⇧</span>Manual Analysis</button>
       </nav>
     </div>
     <div class="sidebar-bottom"><strong>Procurement intelligence</strong><span>Supplier negotiation records, organised in one calm workspace.</span></div>
@@ -208,6 +222,60 @@ tbody tr:last-child td{border-bottom:0}
       <div id="error" class="error" role="alert"></div>
     </section>
     </section>
+
+      <section class="workspace-view" id="manualAnalysisView" hidden>
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Workspace / Manual Analysis</div>
+            <h1>Manual Thread Analysis</h1>
+            <div class="subtitle">Upload and analyse a separate CSV or Excel file.</div>
+          </div>
+        </header>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Upload your file</h2>
+              <div class="panel-sub">CSV or XLSX · Maximum 5 MB · Up to 1,000 rows</div>
+            </div>
+          </div>
+          <div id="manualDropZone" class="manual-drop">
+            <h2>Drop your file here</h2>
+            <p>Or choose a CSV / XLSX file. Required columns: date, supplier, category, quantity, round, supplier_message.</p>
+            <button class="soft-btn" id="manualChooseFile" type="button">Choose file</button>
+            <input id="manualFileInput" type="file" accept=".csv,.xlsx" hidden>
+            <p id="manualFileName">No file selected</p>
+          </div>
+          <div class="manual-actions">
+            <button class="soft-btn" id="manualClearFile" type="button" disabled>Clear</button>
+            <button class="soft-btn" id="manualPreviewBtn" type="button" disabled>Preview & Validate</button>
+            <button class="manual-primary" id="manualAnalyzeBtn" type="button" disabled>Analyse Threads</button>
+          </div>
+          <div class="manual-status" id="manualStatus" role="status">Choose a file to begin. Uploaded records remain separate from the main dataset.</div>
+        </section>
+        <section class="panel" id="manualPreviewPanel" hidden>
+          <h2 class="panel-title">File preview & validation</h2>
+          <p id="manualPreviewSummary" class="panel-sub"></p>
+          <div class="table-wrap">
+            <table><thead><tr><th>Row</th><th>Supplier</th><th>Category</th><th>Validation</th><th>Details</th></tr></thead>
+            <tbody id="manualPreviewRows"></tbody></table>
+          </div>
+        </section>
+        <section class="panel" id="manualResultsPanel" hidden>
+          <div class="manual-heading">
+            <h2 class="panel-title">Analysis results</h2>
+            <button class="soft-btn" id="manualExportCsv" type="button">Export CSV</button>
+            <button class="soft-btn" id="manualExportXlsx" type="button">Export Excel</button>
+          </div>
+          <p id="manualResultsSummary" class="panel-sub"></p>
+          <div class="table-wrap">
+            <table><thead><tr><th>Row</th><th>Supplier</th><th>Category</th><th>Status</th><th>Decision</th><th>Action</th></tr></thead>
+            <tbody id="manualResultsRows"></tbody></table>
+          </div>
+          <h3>Advisory AI explanation</h3>
+          <div class="manual-ai" id="manualAiOutput">Select Explain AI on a result.</div>
+        </section>
+      </section>
+
   </main>
 </div>
 <div class="modal-backdrop" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -486,19 +554,150 @@ $("refresh").addEventListener("click",loadDashboard);
 document.querySelectorAll(".nav").forEach(button=>button.addEventListener("click",()=>{
   document.querySelectorAll(".nav").forEach(item=>item.classList.remove("active"));
   button.classList.add("active");
-
   const view = button.dataset.view;
   $("overviewView").hidden = view !== "overview";
   $("negotiationsView").hidden = view !== "negotiations";
-
-  document.title = view === "overview"
-    ? "Procurement Desk — Overview"
-    : "Procurement Desk — Negotiations";
-
-  if(view === "negotiations"){
-    $("search").focus({preventScroll:true});
-  }
+  $("manualAnalysisView").hidden = view !== "manual";
+  document.title = `Procurement Desk — ${view === "manual" ? "Manual Analysis" : view === "overview" ? "Overview" : "Negotiations"}`;
+  if(view === "negotiations") $("search").focus({preventScroll:true});
 }));
+
+
+let manualFile = null;
+let manualResults = [];
+function manualStatus(message){ $("manualStatus").textContent = message; }
+function manualChoose(file){
+  if(!file) return;
+  if(!/\.(csv|xlsx)$/i.test(file.name)){ manualStatus("Choose a CSV or XLSX file."); return; }
+  if(file.size > 5*1024*1024){ manualStatus("Maximum file size is 5 MB."); return; }
+  manualFile = file;
+  manualResults = [];
+  $("manualFileName").textContent = file.name;
+  $("manualClearFile").disabled = false;
+  $("manualPreviewBtn").disabled = false;
+  $("manualAnalyzeBtn").disabled = false;
+  $("manualPreviewPanel").hidden = true;
+  $("manualResultsPanel").hidden = true;
+  manualStatus("File selected. Preview and validate it before analysis.");
+}
+function manualForm(){
+  const data = new FormData();
+  data.append("file", manualFile);
+  return data;
+}
+async function manualPreview(){
+  if(!manualFile) return;
+  $("manualPreviewBtn").disabled = true;
+  manualStatus("Validating uploaded file...");
+  try{
+    const r = await fetch(`${API_BASE}/api/manual-analysis/preview`,{method:"POST",body:manualForm()});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
+    $("manualPreviewSummary").textContent = `${d.filename}: ${d.total_rows} rows · ${d.valid_rows} valid · ${d.invalid_rows} invalid`;
+    $("manualPreviewRows").innerHTML = (d.preview||[]).map(x=>`<tr><td>${safe(x.row_number)}</td><td>${safe(x.supplier)}</td><td>${safe(x.category)}</td><td>${x.valid?"VALID":"INVALID"}</td><td>${safe(x.error || "Ready")}</td></tr>`).join("");
+    $("manualPreviewPanel").hidden = false;
+    manualStatus("Preview complete. Check invalid rows before analysing.");
+  }catch(e){manualStatus("Preview failed: "+e.message);}
+  finally{$("manualPreviewBtn").disabled=false;}
+}
+async function manualAnalyze(){
+  if(!manualFile) return;
+  $("manualAnalyzeBtn").disabled = true;
+  manualStatus("Running deterministic analysis...");
+  try{
+    const r = await fetch(`${API_BASE}/api/manual-analysis/analyze`,{method:"POST",body:manualForm()});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
+    manualResults = d.results || [];
+    $("manualResultsSummary").textContent = `${d.filename}: ${d.analysed_rows} analysed · ${d.invalid_rows} invalid`;
+    $("manualResultsRows").innerHTML = manualResults.map((x,i)=>`<tr><td>${safe(x.row_number)}</td><td>${safe(x.supplier)}</td><td>${safe(x.category)}</td><td>${safe(x.status)}</td><td>${safe(x.decision || x.error)}</td><td>${x.valid?`<button class="soft-btn" data-manual-explain="${i}" type="button">Explain AI</button>`:"—"}</td></tr>`).join("");
+    $("manualResultsPanel").hidden = false;
+    manualStatus("Analysis complete. The main 2,000-thread dataset was not changed.");
+  }catch(e){manualStatus("Analysis failed: "+e.message);}
+  finally{$("manualAnalyzeBtn").disabled=false;}
+}
+async function manualExplain(index){
+  const row = manualResults[index];
+  $("manualAiOutput").textContent = "Generating advisory explanation...";
+  try{
+    const r = await fetch(`${API_BASE}/api/manual-analysis/explain`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({row})});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
+    $("manualAiOutput").textContent = `${d.explanation}\n\nFinal deterministic decision: ${d.decision}`;
+  }catch(e){$("manualAiOutput").textContent = "Explanation failed: "+e.message;}
+}
+function manualExport(){
+  const cols = ["row_number","thread_id","date","supplier","category","quantity","round","status","decision","counter_offer","error"];
+  const q = v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const csv = [cols.map(q).join(","),...manualResults.map(x=>cols.map(k=>q(x[k])).join(","))].join("\r\n");
+  const url = URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));
+  const a = document.createElement("a"); a.href=url; a.download="manual-analysis-results.csv"; a.click(); URL.revokeObjectURL(url);
+}
+$("manualChooseFile").addEventListener("click",()=>$("manualFileInput").click());
+$("manualFileInput").addEventListener("change",e=>manualChoose(e.target.files[0]));
+$("manualClearFile").addEventListener("click",()=>{
+  manualFile=null; manualResults=[]; $("manualFileInput").value="";
+  $("manualFileName").textContent="No file selected";
+  $("manualClearFile").disabled=true; $("manualPreviewBtn").disabled=true; $("manualAnalyzeBtn").disabled=true;
+  $("manualPreviewPanel").hidden=true; $("manualResultsPanel").hidden=true;
+  manualStatus("Choose a file to begin.");
+});
+$("manualPreviewBtn").addEventListener("click",manualPreview);
+$("manualAnalyzeBtn").addEventListener("click",manualAnalyze);
+$("manualExportCsv").addEventListener("click",manualExport);
+
+$("manualExportXlsx").addEventListener("click", async () => {
+  if (!manualResults.length) {
+    manualStatus("Analyse a file before exporting.");
+    return;
+  }
+
+  const button = $("manualExportXlsx");
+  button.disabled = true;
+  button.textContent = "Preparing Excel...";
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/manual-analysis/export`,
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({results: manualResults})
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "manual-analysis-results.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    manualStatus("Excel file exported successfully.");
+  } catch (error) {
+    manualStatus("Excel export failed: " + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Export Excel";
+  }
+});
+
+$("manualResultsRows").addEventListener("click",e=>{
+  const b=e.target.closest("[data-manual-explain]");
+  if(b) manualExplain(Number(b.dataset.manualExplain));
+});
+const dz=$("manualDropZone");
+dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("dragover");});
+dz.addEventListener("dragleave",()=>dz.classList.remove("dragover"));
+dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("dragover");manualChoose(e.dataTransfer.files[0]);});
 
 loadDashboard();
 </script>
