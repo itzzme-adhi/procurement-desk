@@ -167,7 +167,7 @@ If the offer is within the walkaway threshold but the total exceeds the approval
 Counter-offer values are rounded to the nearest whole rupee using round-half-up:
 
 $$
-\operatorname{roundHalfUp}(x)=\left\lfloor x+\frac{1}{2}\right\rfloor
+\text{roundHalfUp}(x) = \left\lfloor x + \frac{1}{2} \right\rfloor
 $$
 
 The implementation uses exact fractions and `math.floor`, rather than Python's default ties-to-even `round()` behavior.
