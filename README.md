@@ -129,8 +129,7 @@ where \(Q\) is the requested quantity and \(A\) is the approval limit.
 Counter-offer values use round-half-up integer rounding:
 
 $$
-\operatorname{round}(x)=
-\left\lfloor x+\frac{1}{2}\right\rfloor
+\mathrm{round}(x) = \left\lfloor x + \frac{1}{2} \right\rfloor
 $$
 
 This avoids relying on floating-point rounding behavior.
