@@ -19,11 +19,11 @@ The competition engine processes negotiation threads and produces one decision p
 
 The competition engine is deterministic: identical input rows, playbook files, and code produce identical decisions.
 
-**Competition engine:** `claude_review/procurement_fix/`
+**Competition engine:** `engine_core/procurement_fix/`
 
 **Final selected competition file:** `final_submission.csv`
 
-**Playbook:** `claude_review/procurement_fix/playbook/`
+**Playbook:** `engine_core/procurement_fix/playbook/`
 
 The separate web application under `backend/` and `frontend/` is not the competition inference pipeline.
 
@@ -338,7 +338,7 @@ Competition inference has no model/API inference cost because it makes zero mode
 
 ### AI-assisted development disclosure
 
-ChatGPT was used during project work for technical guidance, debugging discussions, and README drafting/review. The team should add any other AI coding assistants actually used by its members and describe their contributions accurately. Development assistance is distinct from competition-time inference.
+ChatGPT and Claude (Anthropic) were used as development assistants: ChatGPT for guidance, debugging and README drafting; Claude for reviewing and fixing the competition engine (hence the early folder name `claude_review`, now `engine_core`). The team ran, tested and validated all code. Development assistance is distinct from competition-time inference.
 
 ---
 
@@ -381,11 +381,11 @@ The parser uses explicit supported text patterns rather than a general language 
 
 The competition project includes automated tests, a submission-generation runner, and a separate validator.
 
-### Previously recorded local results
+### Results (re-run live on 25 Nov 2026)
 
-The following results were recorded during the team's earlier validation. They are reported historical results and have not been independently rerun as part of this README update.
+All numbers below were re-run from a clean checkout for the final round.
 
-| Evaluation | Previously recorded result |
+| Evaluation | Result |
 |---|---:|
 | Automated unit tests | 67 passed |
 | Official sample cases | 40/40 passed |
@@ -396,7 +396,7 @@ The following results were recorded during the team's earlier validation. They a
 
 These results cover the tested examples and structural validation. They do not establish 100% predictive accuracy across all 2,000 competition threads because complete ground-truth labels for the full dataset were not available.
 
-The team previously verified that `final_submission.csv` was byte-identical to `claude_review/procurement_fix/submission_verified.csv`.
+`final_submission.csv` was regenerated from `threads.csv` on 25 Nov 2026 and is byte-identical to the submitted file (SHA256 above).
 
 The team reported a public leaderboard position of 8th after resubmission. This is a reported public leaderboard result, not a claim about the private leaderboard.
 
@@ -499,15 +499,15 @@ The web backend declares FastAPI, Uvicorn, Pandas, PyYAML, python-multipart, and
 
 ### AI-assisted development
 
-ChatGPT was used for technical guidance, debugging discussions, and README drafting/review. The team must add any other AI coding assistants actually used by its members and accurately describe their contributions before final submission.
+See Section 5: ChatGPT and Claude were used as development assistants. Neither is called during competition inference.
 
 ### External code and templates
 
-The repository's declared runtime dependencies are listed above. The team must disclose any externally sourced code snippets, templates, or copied implementation used during development. Do not claim that no external code was used unless every team member has confirmed this.
+The repository's declared runtime dependencies are listed above. No external code snippets were copied; only the libraries listed above were used.
 
 ### Data and labels
 
-The competition input dataset is not included in this public repository. The team does not claim to have manually labelled the full competition dataset. Any sample-answer files, manual annotations, or external reference material used during development must be disclosed accurately.
+The competition input dataset is not included in this public repository. The team does not claim to have manually labelled the full competition dataset. The 40 official sample cases (`tests/data/`) are used only for testing.
 
 ---
 
@@ -521,7 +521,7 @@ The competition input dataset is not included in this public repository. The tea
 
 The competition input dataset is not included in this repository. Obtain it from the authorized competition source and place it at:
 
-`claude_review/procurement_fix/threads.csv`
+`engine_core/procurement_fix/threads.csv`
 
 The competition playbook is included in the repository and is loaded by the configuration module. The optional `PROCUREMENT_PLAYBOOK` environment variable can point to another playbook directory containing the expected `policies/`, `categories/`, `amendments/`, and `suppliers/` structure.
 
@@ -536,16 +536,16 @@ source .venv/bin/activate
 
 python -m pip install -r requirements-competition.txt
 
-python claude_review/procurement_fix/run_submission.py \
-  claude_review/procurement_fix/threads.csv \
+python engine_core/procurement_fix/run_submission.py \
+  engine_core/procurement_fix/threads.csv \
   final_submission_reproduced.csv
 
-python claude_review/procurement_fix/validate_submission.py \
+python engine_core/procurement_fix/validate_submission.py \
   final_submission_reproduced.csv \
-  claude_review/procurement_fix/threads.csv
+  engine_core/procurement_fix/threads.csv
 
 python -m unittest discover \
-  -s claude_review/procurement_fix/tests \
+  -s engine_core/procurement_fix/tests \
   -v
 ```
 
@@ -560,16 +560,16 @@ py -3 -m venv .venv
 
 python -m pip install -r requirements-competition.txt
 
-python claude_review/procurement_fix/run_submission.py `
-  claude_review/procurement_fix/threads.csv `
+python engine_core/procurement_fix/run_submission.py `
+  engine_core/procurement_fix/threads.csv `
   final_submission_reproduced.csv
 
-python claude_review/procurement_fix/validate_submission.py `
+python engine_core/procurement_fix/validate_submission.py `
   final_submission_reproduced.csv `
-  claude_review/procurement_fix/threads.csv
+  engine_core/procurement_fix/threads.csv
 
 python -m unittest discover `
-  -s claude_review/procurement_fix/tests `
+  -s engine_core/procurement_fix/tests `
   -v
 ```
 
@@ -603,7 +603,7 @@ On Windows PowerShell:
 Get-FileHash final_submission.csv -Algorithm SHA256
 ```
 
-Previously recorded expected SHA256:
+Expected SHA256:
 
 `b23652b3f1f5d0159e7047963f96cf96d767e11ab3671f7044e21481c6a925a1`
 

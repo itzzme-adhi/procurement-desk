@@ -34,8 +34,9 @@ def price(supplier, category, date, qty, body):
 
 class OfficialSamples(unittest.TestCase):
     def test_40_official_examples(self):
-        th = pd.read_csv(ROOT / "sample_threads.csv")
-        ans = pd.read_csv(ROOT / "sample_answers.csv").set_index("thread_id")["label"]
+        DATA = ROOT / "tests" / "data"
+        th = pd.read_csv(DATA / "sample_threads.csv")
+        ans = pd.read_csv(DATA / "sample_answers.csv").set_index("thread_id")["label"]
         self.assertEqual(len(th), 40)
         bad = []
         for _, r in th.iterrows():
