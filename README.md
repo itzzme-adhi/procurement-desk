@@ -483,7 +483,3 @@ Expected SHA256:
 `b23652b3f1f5d0159e7047963f96cf96d767e11ab3671f7044e21481c6a925a1`
 
 ---
-
-## License and Usage
-
-This repository is intended to document and reproduce the Procurement Desk competition solution. Any redistribution or commercial use should respect the competition rules, dataset terms, and licenses of external dependencies.
