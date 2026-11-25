@@ -144,22 +144,24 @@ The competition pipeline follows this structure:
 ```mermaid
 flowchart TD
     A[Supplier Negotiation Threads] --> B[CSV Input]
-    B --> C[Conversation Parser]
-    C --> D[Price and Quantity Extraction]
-    D --> E[Currency and Unit Normalization]
-    E --> F[Playbook and Amendment Loader]
-    F --> G[Deterministic Decision Engine]
-    G --> H{Decision}
-    H --> I[ACCEPT]
-    H --> J[COUNTER]
-    H --> K[REJECT]
-    H --> L[ESCALATE]
-    I --> M[Submission CSV]
-    J --> M
-    K --> M
-    L --> M
-    M --> N[Submission Validator]
+    B --> C[Parser]
+    C --> D[Offer Extraction and Normalization]
+    D --> E[Procurement Configuration]
+    E --> F[Deterministic Decision Engine]
+    F --> G[ACCEPT / COUNTER / REJECT / ESCALATE]
+    G --> H[Submission CSV]
+    H --> I[Submission Validator]
+
+    J[Procurement Playbook] --> E
+    K[Automated Tests] --> F
+
+    L[LLM / External AI API] -.->|Not used during competition inference| F
 ```
+**LLM Integration Boundary**
+
+The competition inference pipeline does not invoke an LLM or external AI API. Supplier-offer interpretation, price normalization, policy evaluation, and final decisions are handled by deterministic Python components.
+
+The separate Procurement Desk web application includes LLM-based explanation functionality. It is independent of the competition submission pipeline.
 
 ### Main components
 
