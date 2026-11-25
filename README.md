@@ -507,7 +507,7 @@ The repository's declared runtime dependencies are listed above. No external cod
 
 ### Data and labels
 
-The competition input dataset is not included in this public repository. The team does not claim to have manually labelled the full competition dataset. The 40 official sample cases (`tests/data/`) are used only for testing.
+The competition input dataset is included at `data/threads.csv`. The team does not claim to have manually labelled the full competition dataset. The 40 official sample cases (`tests/data/`) are used only for testing.
 
 ---
 
@@ -519,7 +519,7 @@ The competition input dataset is not included in this public repository. The tea
 - `pandas==3.1.1` from `requirements-competition.txt`.
 - The authorized competition input dataset.
 
-The competition input dataset is not included in this repository. Obtain it from the authorized competition source and place it at:
+The competition input dataset is included in this repository at:
 
 `data/threads.csv`
 
