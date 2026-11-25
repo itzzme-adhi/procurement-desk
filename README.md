@@ -45,9 +45,9 @@ Let:
 
 The threshold is:
 
-\[
+$$
 L(r)=T+(W-T)\left(\frac{r-1}{R-1}\right)^\beta
-\]
+$$
 
 For probationary suppliers, the engine uses the target price as the threshold.
 
@@ -57,9 +57,9 @@ The current round is capped at the maximum configured round.
 
 Supplier quotations are converted into the configured comparison currency using the applicable exchange rate.
 
-\[
+$$
 P_{\text{base}}=P_{\text{quoted}}\times FX
-\]
+$$
 
 Supplier-specific contract currency rates take precedence over general currency rates when configured.
 
@@ -67,11 +67,11 @@ Supplier-specific contract currency rates take precedence over general currency 
 
 Prices are converted into comparable unit prices.
 
-\[
+$$
 P_{\text{unit}}=
 \frac{P_{\text{normalized total}}}
 {\text{normalized quantity}}
-\]
+$$
 
 The parser supports configured unit conventions, including per-dozen, per-pack, per-N-units, and applicable ream-based pricing.
 
@@ -81,17 +81,17 @@ GST-inclusive and GST-exclusive quotations are interpreted according to the quot
 
 For an inclusive quotation:
 
-\[
+$$
 P_{\text{before GST}}=
 \frac{P_{\text{inclusive}}}{1+g}
-\]
+$$
 
 For an exclusive quotation:
 
-\[
+$$
 P_{\text{with GST}}=
 P_{\text{before GST}}(1+g)
-\]
+$$
 
 where \(g\) is the applicable GST rate.
 
@@ -117,10 +117,10 @@ For price ranges, the more expensive end is used for conservative evaluation.
 
 An offer must also satisfy the configured approval limit.
 
-\[
+$$
 P_{\text{unit}}\times Q
 \leq A
-\]
+$$
 
 where \(Q\) is the requested quantity and \(A\) is the approval limit.
 
@@ -128,10 +128,10 @@ where \(Q\) is the requested quantity and \(A\) is the approval limit.
 
 Counter-offer values use round-half-up integer rounding:
 
-\[
+$$
 \operatorname{round}(x)=
 \left\lfloor x+\frac{1}{2}\right\rfloor
-\]
+$$
 
 This avoids relying on floating-point rounding behavior.
 
