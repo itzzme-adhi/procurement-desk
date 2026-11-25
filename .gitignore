@@ -24,3 +24,6 @@ extracted/
 /frontend/*.before*
 /backend/engine/*backup*
 /backend/*.ollama_backup
+
+# Local backup files
+*.backup
