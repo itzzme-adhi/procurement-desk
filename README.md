@@ -521,7 +521,7 @@ The competition input dataset is not included in this public repository. The tea
 
 The competition input dataset is not included in this repository. Obtain it from the authorized competition source and place it at:
 
-`engine_core/procurement_fix/threads.csv`
+`data/threads.csv`
 
 The competition playbook is included in the repository and is loaded by the configuration module. The optional `PROCUREMENT_PLAYBOOK` environment variable can point to another playbook directory containing the expected `policies/`, `categories/`, `amendments/`, and `suppliers/` structure.
 
@@ -537,12 +537,12 @@ source .venv/bin/activate
 python -m pip install -r requirements-competition.txt
 
 python engine_core/procurement_fix/run_submission.py \
-  engine_core/procurement_fix/threads.csv \
+  data/threads.csv \
   final_submission_reproduced.csv
 
 python engine_core/procurement_fix/validate_submission.py \
   final_submission_reproduced.csv \
-  engine_core/procurement_fix/threads.csv
+  data/threads.csv
 
 python -m unittest discover \
   -s engine_core/procurement_fix/tests \
@@ -561,12 +561,12 @@ py -3 -m venv .venv
 python -m pip install -r requirements-competition.txt
 
 python engine_core/procurement_fix/run_submission.py `
-  engine_core/procurement_fix/threads.csv `
+  data/threads.csv `
   final_submission_reproduced.csv
 
 python engine_core/procurement_fix/validate_submission.py `
   final_submission_reproduced.csv `
-  engine_core/procurement_fix/threads.csv
+  data/threads.csv
 
 python -m unittest discover `
   -s engine_core/procurement_fix/tests `
