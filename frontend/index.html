@@ -156,6 +156,74 @@ tbody tr:last-child td{border-bottom:0}
   color: white;
   cursor: pointer;
 }
+
+.analysis-grid {
+  max-width: 1050px;
+  margin: 24px auto 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.analysis-panel {
+  min-width: 0;
+  background: rgba(251,245,242,.75);
+  border: 1px solid #EADBD5;
+  border-radius: 16px;
+  padding: 22px;
+}
+.analysis-panel h2 {
+  margin: 0 0 18px;
+  font-size: 19px;
+  color: #2B2B2E;
+}
+.analysis-panel h3 {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.analysis-panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #2B2B2E;
+  margin: 0;
+}
+.analysis-memory-count {
+  color: #777;
+  font-size: 13px;
+}
+.analysis-memory-item {
+  background: white;
+  border: 1px solid #EADBD5;
+  border-radius: 12px;
+  padding: 13px;
+  margin-top: 10px;
+}
+.analysis-memory-item strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.analysis-memory-meta {
+  color: #777;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.analysis-memory-decision {
+  margin-top: 8px;
+  color: #2B2B2E;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+@media(max-width:700px) {
+  .analysis-grid { grid-template-columns: 1fr; }
+}
+
 @media(max-width:600px) {
   .analysis-page { padding: 20px 14px; }
   .analysis-card { padding: 20px; }
@@ -294,6 +362,24 @@ tbody tr:last-child td{border-bottom:0}
     <div class="analysis-subtitle" id="analysisSubtitle"></div>
     <div class="analysis-output" id="analysisExplanationText" aria-live="polite">
       Select a negotiation thread to generate an analysis.
+    </div>
+
+    <div class="analysis-grid">
+      <section class="analysis-panel">
+        <h2>Conversation Context</h2>
+        <h3>Earlier Conversation</h3>
+        <pre id="analysisHistory">Loading conversation...</pre>
+        <h3>Latest Supplier Message</h3>
+        <pre id="analysisLatestMessage">Loading latest message...</pre>
+      </section>
+
+      <section class="analysis-panel">
+        <h2>Historical Negotiation Memory</h2>
+        <p class="analysis-memory-count" id="analysisMemoryCount">
+          Finding similar historical cases...
+        </p>
+        <div id="analysisMemoryCases"></div>
+      </section>
     </div>
   </article>
 </section>
@@ -458,6 +544,10 @@ async function loadAIExplanation(thread){
   const output = $("analysisExplanationText");
 
   output.textContent = "Analyzing negotiation with Cloudflare AI...";
+  $("analysisHistory").textContent = "Loading conversation...";
+  $("analysisLatestMessage").textContent = "Loading latest message...";
+  $("analysisMemoryCount").textContent = "Finding similar historical cases...";
+  $("analysisMemoryCases").replaceChildren();
 
   try {
     const response = await fetch(
@@ -476,15 +566,57 @@ async function loadAIExplanation(thread){
       ? data.explanation
       : `${data.explanation} (Deterministic fallback: Cloudflare AI unavailable.)`;
 
+    $("analysisHistory").textContent =
+      data.conversation_history || "No earlier conversation available.";
+
+    $("analysisLatestMessage").textContent =
+      data.latest_supplier_message || "No latest supplier message available.";
+
+    const cases = Array.isArray(data.historical_cases)
+      ? data.historical_cases
+      : [];
+
+    $("analysisMemoryCount").textContent =
+      `${cases.length} similar historical case(s) retrieved`;
+
+    const memoryContainer = $("analysisMemoryCases");
+
+    if (!cases.length) {
+      memoryContainer.textContent = "No similar historical cases found.";
+    } else {
+      cases.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "analysis-memory-item";
+
+        const heading = document.createElement("strong");
+        heading.textContent =
+          `${item.thread_id || "Unknown thread"} · ${item.supplier || "Unknown supplier"}`;
+
+        const meta = document.createElement("div");
+        meta.className = "analysis-memory-meta";
+        meta.textContent =
+          `Date: ${item.date || "—"} · Category: ${item.category || "—"} · Similarity: ${item.similarity_score ?? "—"}`;
+
+        const decision = document.createElement("div");
+        decision.className = "analysis-memory-decision";
+        decision.textContent = `Historical decision: ${item.decision || "—"}`;
+
+        card.append(heading, meta, decision);
+        memoryContainer.appendChild(card);
+      });
+    }
+
   } catch (error) {
     if (requestId !== aiRequestId) return;
 
     output.textContent =
       "Unable to load the AI explanation. Check that the backend is running.";
+    $("analysisHistory").textContent = "Conversation context unavailable.";
+    $("analysisLatestMessage").textContent = "Latest message unavailable.";
+    $("analysisMemoryCount").textContent = "Historical memory unavailable.";
     console.error("AI explanation error:", error);
   }
 }
-
 function openDetails(thread){
   if(!thread)return;
   selectedThread = thread;

@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.engine.decision import decide_thread
 from backend.llm_service import explain_decision
+from backend.memory_service import split_conversation, retrieve_historical_cases
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -174,6 +175,11 @@ def explain_thread(thread_id: str):
     row = matches.iloc[0]
     decision = decide_thread(row)
 
+    conversation = split_conversation(
+        row.get("supplier_message", "")
+    )
+    historical_cases = retrieve_historical_cases(df, row)
+
     result = explain_decision({
         "decision": decision,
         "supplier": row["supplier"],
@@ -182,6 +188,11 @@ def explain_thread(thread_id: str):
         "quantity": row["quantity"],
         "round": row["round"],
         "supplier_message": row.get("supplier_message", ""),
+        "conversation_history": conversation["history"],
+        "latest_supplier_message": conversation["latest_message"],
+        "conversation_history_available": conversation["history_available"],
+        "our_last_counter": row.get("our_last_counter", ""),
+        "historical_cases": historical_cases,
     })
 
     return {
@@ -190,6 +201,11 @@ def explain_thread(thread_id: str):
         "explanation": result["explanation"],
         "llm_used": result["llm_used"],
         "reason": result["reason"],
+        "conversation_history_available": conversation["history_available"],
+        "conversation_history": conversation["history"],
+        "latest_supplier_message": conversation["latest_message"],
+        "historical_cases": historical_cases,
+        "memory_count": len(historical_cases),
     }
 
 
